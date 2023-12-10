@@ -1,15 +1,31 @@
+"""
+Project: Library Management System
+Course: CS 3330 - Database Systems
+Team: 16
+
+Description:
+    This program is a Library Management System developed for CS 3330 - Database Systems course.
+    It provides an interface for managing a library's catalog and user transactions.
+    The system allows for adding, updating, and deleting books in the catalog.
+    It also handles user checkouts, returns, and tracks overdue items.
+    The system uses a SQLite database to store and manage all data.
+"""
+
+__author__ = "Gavin Meyer, Matthew Moran, and Nicholas Doerfler"
+
+# Imports
 import tkinter as tk
 from tkinter import messagebox, Toplevel, ttk, font
 import sqlite3
 from typing import Any
 
-LMS: sqlite3.Connection = sqlite3.connect("LMS.db")
-cursor: sqlite3.Cursor = LMS.cursor()
 
-
-def initialize_tables() -> None:
+def initialize_tables(LMS: sqlite3.Connection) -> None:
     """
-    initialize_tables -- Initializes the tables in the database with data from Part 2.
+    Function that initializes the tables in the database with data.
+
+    Args:
+        - LMS (sqlite3.Connection): The connection to the database.
     """
 
     with LMS:
@@ -294,7 +310,7 @@ def initialize_tables() -> None:
             """
         )
 
-        # Update Book Copies on Loan Trigger
+        # Add Trigger - Update Book Copies on Book Loan
         LMS.execute(
             """
             CREATE TRIGGER IF NOT EXISTS update_book_copies_after_loan
@@ -308,11 +324,13 @@ def initialize_tables() -> None:
         )
 
 
-def initialize_column_updates() -> None:
+def initialize_column_updates(LMS: sqlite3.Connection) -> None:
     """
-    initialize_column_updates
-        - Adds column "Late" to BOOK_LOANS table and updates it based on Due_Date and Returned_date.
-        - Adds column "Late_Fee" to LIBRARY_BRANCH table and updates it based on Branch_Id.
+    Function that adds column "Late" to BOOK_LOANS table, updates it based on Due_Date and Returned_date.
+    Also, adds column "Late_Fee" to LIBRARY_BRANCH table, updates it based on Branch_Id.
+
+    Args:
+        - LMS (sqlite3.Connection): The connection to the database.
     """
 
     with LMS:
@@ -378,16 +396,13 @@ def initialize_column_updates() -> None:
         )
 
 
-def delete_tables() -> None:
+def delete_tables(cursor: sqlite3.Cursor) -> None:
     """
-    delete_tables_view -- Deletes all tables and views created.
+    Function that deletes all tables.
 
-    Functions:
-        - drop_table -- Drops a table from the database.
+    Args:
+        - cursor (sqlite3.Cursor): The cursor object to execute the SQL statements.
     """
-
-    def drop_table(cursor, table_name) -> None:
-        cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
 
     tables: list[str] = [
         "BORROWER",
@@ -400,15 +415,15 @@ def delete_tables() -> None:
     ]
 
     for table in tables:
-        drop_table(cursor, table)
+        cursor.execute(f"DROP TABLE IF EXISTS {table};")
 
 
-def autosize_tree_columns(tree) -> None:
+def autosize_tree_columns(tree: Any) -> None:
     """
-    autosize_tree_columns -- Resizes the columns in a Treeview widget to fit the data.
+    Function that resizes the columns in a Treeview widget to fit the data.
 
     Args:
-        tree (Any): The Treeview widget to resize.
+        - tree (Any): The Treeview widget to resize.
     """
     for column in tree["columns"]:
         tree.column(column, width=font.Font().measure(column.title()))
@@ -418,12 +433,14 @@ def autosize_tree_columns(tree) -> None:
                 tree.column(column, width=item_width)
 
 
-def display_table_data(table_name) -> None:
+def display_table_data(root: tk.Tk, cursor: sqlite3.Cursor, table_name: Any) -> None:
     """
-    display_table_data -- Displays the data in a table in a new window.
+    Function that displays the data in a table in a new window.
 
     Args:
-        table_name (Any): The name of the table to display.
+        - root (tk.Tk): The root window.
+        - cursor (sqlite3.Cursor): The cursor object to execute the SQL statements.
+        - table_name (Any): The name of the table to display.
     """
 
     data_window = tk.Toplevel(root)
@@ -464,9 +481,13 @@ def display_table_data(table_name) -> None:
     autosize_tree_columns(tree)
 
 
-def open_table_display_window() -> None:
+def open_table_display_window(root: tk.Tk, cursor: sqlite3.Cursor) -> None:
     """
-    open_table_display_window -- Opens a new window to display the tables in the database.
+    Function that opens a new window to display the tables in the database.
+
+    Args:
+        - root (tk.Tk): The root window.
+        - cursor (sqlite3.Cursor): The cursor object to execute the SQL statements.
     """
 
     table_window = Toplevel(root)
@@ -485,15 +506,22 @@ def open_table_display_window() -> None:
 
     for table in tables:
         tk.Button(
-            table_window, text=table, command=lambda t=table: display_table_data(t)
+            table_window,
+            text=table,
+            command=lambda t=table: display_table_data(root, cursor, t),
         ).pack(expand=True, anchor="center")
 
 
-def add_borrower() -> None:
+def add_borrower(root: tk.Tk, cursor: sqlite3.Cursor, LMS: sqlite3.Connection) -> None:
     """
-    add_borrower -- Opens a new window to add a new borrower to the database.
+    Function that opens a new window to add a new borrower to the database.
 
-    Functions:
+    Args:
+        - root (tk.Tk): The root window.
+        - cursor (sqlite3.Cursor): The cursor object to execute the SQL statements.
+        - LMS (sqlite3.Connection): The connection to the database.
+
+    Inner Function:
         - submit_borrower -- Submits the data entered in the window to the database.
     """
 
@@ -532,11 +560,18 @@ def add_borrower() -> None:
     submit_btn.grid(row=3, column=1)
 
 
-def check_out_book() -> None:
+def check_out_book(
+    root: tk.Tk, cursor: sqlite3.Cursor, LMS: sqlite3.Connection
+) -> None:
     """
-    check_out_book -- Opens a new window to check out a book.
+    Function that opens a new window to check out a book.
 
-    Functions:
+    Args:
+        - root (tk.Tk): The root window.
+        - cursor (sqlite3.Cursor): The cursor object to execute the SQL statements.
+        - LMS (sqlite3.Connection): The connection to the database.
+
+    Inner Function:
         - submit_checkout -- Submits the data entered in the window to the database.
 
     Exceptions:
@@ -622,7 +657,7 @@ def check_out_book() -> None:
                 )
 
             else:
-                # Book not available at this branch
+                # Display error message if book is not available at the branch
                 messagebox.showerror(
                     "Error", "This library branch does not have that book"
                 )
@@ -659,11 +694,16 @@ def check_out_book() -> None:
     checkout_btn.grid(row=5, column=1)
 
 
-def add_new_book() -> None:
+def add_new_book(root: tk.Tk, cursor: sqlite3.Cursor, LMS: sqlite3.Connection) -> None:
     """
-    add_new_book -- Opens a new window to add a new book to the database.
+    Function that opens a new window to add a new book to the database.
 
-    Functions:
+    Args:
+        - root (tk.Tk): The root window.
+        - cursor (sqlite3.Cursor): The cursor object to execute the SQL statements.
+        - LMS (sqlite3.Connection): The connection to the database.
+
+    Inner Function:
         - submit_book -- Submits the data entered in the window to the database.
 
     Exceptions:
@@ -676,7 +716,7 @@ def add_new_book() -> None:
         publisher_name: str = publisher_entry.get()
         author_name: str = author_entry.get()
 
-        # Insert the book and author details
+        # Insert the book and author details into the database
         try:
             cursor.execute(
                 """
@@ -734,11 +774,15 @@ def add_new_book() -> None:
     submit_btn.grid(row=3, column=1)
 
 
-def report_loaned_books() -> None:
+def report_loaned_books(root: tk.Tk, cursor: sqlite3.Cursor) -> None:
     """
-    report_loaned_books -- Opens a new window to display the books loaned out by a borrower.
+    Function that opens a new window to display the books loaned out by a borrower.
 
-    Functions:
+    Args:
+        - root (tk.Tk): The root window.
+        - cursor (sqlite3.Cursor): The cursor object to execute the SQL statements.
+
+    Inner Function:
         - show_report -- Displays the report in a new window.
 
     Exceptions:
@@ -791,11 +835,15 @@ def report_loaned_books() -> None:
     report_btn.grid(row=1, column=1)
 
 
-def report_late_returns() -> None:
+def report_late_returns(root: tk.Tk, cursor: sqlite3.Cursor) -> None:
     """
-    report_late_returns -- Opens a new window to display the late returns between two dates.
+    Function that opens a new window to display the late returns between two dates.
 
-    Functions:
+    Args:
+        - root (tk.Tk): The root window.
+        - cursor (sqlite3.Cursor): The cursor object to execute the SQL statements.
+
+    Inner Function:
         - show_report -- Displays the report in a new window.
 
     Exceptions:
@@ -839,6 +887,7 @@ def report_late_returns() -> None:
 
             result_text_area.delete("1.0", tk.END)  # Clear existing text
             result_text_area.insert(tk.END, report_text)
+
         except sqlite3.Error as e:
             messagebox.showerror("Database Error", str(e))
 
@@ -864,11 +913,15 @@ def report_late_returns() -> None:
     result_text_area.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
 
 
-def borrower_info() -> None:
+def borrower_info(root: tk.Tk, cursor: sqlite3.Cursor) -> None:
     """
-    borrower_info -- Opens a new window to display the information about a borrower.
+    Function that opens a new window to display the information about a borrower.
 
-    Functions:
+    Args:
+        - root (tk.Tk): The root window.
+        - cursor (sqlite3.Cursor): The cursor object to execute the SQL statements.
+
+    Inner Function:
         - search_borrower -- Searches the database for the borrower information.
 
     Exceptions:
@@ -944,11 +997,15 @@ def borrower_info() -> None:
     )
 
 
-def book_info() -> None:
+def book_info(root: tk.Tk, cursor: sqlite3.Cursor) -> None:
     """
-    book_info -- Opens a new window to display the information about a book.
+    Function that opens a new window to display the information about a book.
 
-    Functions:
+    Args:
+        - root (tk.Tk): The root window.
+        - cursor (sqlite3.Cursor): The cursor object to execute the SQL statements.
+
+    Inner Function:
         - search_book -- Searches the database for the book information.
 
     Exceptions:
@@ -1044,35 +1101,78 @@ def book_info() -> None:
     )  # Stick to all sides
 
 
-def buttons() -> None:
+def buttons(root: tk.Tk, cursor: sqlite3.Cursor, LMS: sqlite3.Connection) -> None:
     """
-    buttons -- Creates the buttons in the main window.
+    Function that creates the buttons in the main window.
+
+    Args:
+        - root (tk.Tk): The root window.
+        - cursor (sqlite3.Cursor): The cursor object to execute the SQL statements.
+        - LMS (sqlite3.Connection): The connection to the database.
     """
 
+    # Initialize Tables Button
     initialize_tables_btn = tk.Button(
-        root, text="Initialize Tables", command=initialize_tables
+        root, text="Initialize Tables", command=lambda: initialize_tables(LMS)
     )
-    initialize_column_updates_btn = tk.Button(
-        root, text="Initialize Column Updates", command=initialize_column_updates
-    )
-    delete_tables_btn = tk.Button(root, text="Delete Tables", command=delete_tables)
-    display_tables_btn = tk.Button(
-        root, text="Display Tables", command=open_table_display_window
-    )
-    borrower_btn = tk.Button(root, text="Add Borrower", command=add_borrower)
-    checkout_btn = tk.Button(root, text="Check Out Book", command=check_out_book)
-    add_book_btn = tk.Button(root, text="Add New Book", command=add_new_book)
-    loan_report_btn = tk.Button(
-        root, text="Book Loan Report", command=report_loaned_books
-    )
-    late_returns_report_btn = tk.Button(
-        root, text="Late Returns Report", command=report_late_returns
-    )
-    borrower_info_btn = tk.Button(
-        root, text="Borrower Information", command=borrower_info
-    )
-    book_info_btn = tk.Button(root, text="Book Information", command=book_info)
 
+    # Initialize Column Updates Button
+    initialize_column_updates_btn = tk.Button(
+        root,
+        text="Initialize Column Updates",
+        command=lambda: initialize_column_updates(LMS),
+    )
+
+    # Delete Tables Button
+    delete_tables_btn = tk.Button(
+        root, text="Delete Tables", command=lambda: delete_tables(cursor)
+    )
+
+    # Display Tables Button
+    display_tables_btn = tk.Button(
+        root,
+        text="Display Tables",
+        command=lambda: open_table_display_window(root, cursor),
+    )
+
+    # Borrower Button
+    borrower_btn = tk.Button(
+        root, text="Add Borrower", command=lambda: add_borrower(root, cursor, LMS)
+    )
+
+    # Check Out Book Button
+    checkout_btn = tk.Button(
+        root, text="Check Out Book", command=lambda: check_out_book(root, cursor, LMS)
+    )
+
+    # Add New Book Button
+    add_book_btn = tk.Button(
+        root, text="Add New Book", command=lambda: add_new_book(root, cursor, LMS)
+    )
+
+    # Book Loan Report Button
+    loan_report_btn = tk.Button(
+        root, text="Book Loan Report", command=lambda: report_loaned_books(root, cursor)
+    )
+
+    # Late Returns Report Button
+    late_returns_report_btn = tk.Button(
+        root,
+        text="Late Returns Report",
+        command=lambda: report_late_returns(root, cursor),
+    )
+
+    # Borrower Information Button
+    borrower_info_btn = tk.Button(
+        root, text="Borrower Information", command=lambda: borrower_info(root, cursor)
+    )
+
+    # Book Information Button
+    book_info_btn = tk.Button(
+        root, text="Book Information", command=lambda: book_info(root, cursor)
+    )
+
+    # Packing the buttons
     initialize_tables_btn.pack(expand=True, anchor="center")
     initialize_column_updates_btn.pack(expand=True, anchor="center")
     delete_tables_btn.pack(expand=True, anchor="center")
@@ -1086,12 +1186,24 @@ def buttons() -> None:
     book_info_btn.pack(expand=True, anchor="center")
 
 
-root = tk.Tk()
-root.title("Library Management System")
-root.geometry("350x400")
+def main() -> None:
+    """
+    Main function that creates the main window.
+    """
 
-buttons()
+    LMS: sqlite3.Connection = sqlite3.connect("LMS.db")
+    cursor: sqlite3.Cursor = LMS.cursor()
 
-root.mainloop()
-LMS.commit()
-LMS.close()
+    root: tk.Tk = tk.Tk()
+    root.title("Library Management System")
+    root.geometry("350x400")
+
+    buttons(root, cursor, LMS)
+
+    root.mainloop()
+    LMS.commit()
+    LMS.close()
+
+
+if __name__ == "__main__":
+    main()
